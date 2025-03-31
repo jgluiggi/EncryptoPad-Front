@@ -3,7 +3,7 @@
     <nav class="navbar is-fixed-top is-primary has-shadow" role="navigation" aria-label="main navigation">
       <section class="container">
 
-        <div class="navbar-menu is-active">
+        <div class="navbar-menu is-active has-text-weight-bold">
           <div class="navbar-start">
             <RouterLink to="/login" class="navbar-item"> Login </RouterLink>
 
