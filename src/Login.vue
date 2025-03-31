@@ -1,11 +1,28 @@
 <template>
-  <div class="w-96 p-4 mx-auto mt-20 border rounded-lg shadow">
-    <h2 class="text-xl font-bold mb-4">Login</h2>
-    <input v-model="email" type="email" placeholder="Email" class="w-full p-2 mb-2 border rounded" />
-    <input v-model="password" type="password" placeholder="Password" class="w-full p-2 mb-4 border rounded" />
-    <p v-if="error" class="text-red-500">{{ error }}</p>
-    <button @click="login" class="w-full p-2 bg-blue-500 text-white rounded">Login</button>
-  </div>
+  <section class="section">
+    <div class="container is-max-tablet">
+      <div class="field">
+        <label class="label">E-mail</label>
+        <div class="control">
+          <input v-model="email" type="email" placeholder="Email" class="input"
+            :class="{'is-danger': error != ''}" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">Password</label>
+        <div class="control">
+          <input v-model="password" type="password" placeholder="Password" class="input"
+            :class="{'is-danger': error != ''}" />
+          <p v-if="error" class="text-red-500">{{ error }}</p>
+        </div>
+      </div>
+      <div class="field">
+        <div class="control">
+          <button @click="login" class="button is-success">Login</button>
+        </div>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup>
@@ -23,13 +40,28 @@ const login = async () => {
     return;
   }
   error.value = '';
-  const response = await fetch('http://localhost:3000/users/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email.value, password: password.value })
-  });
-  const data = await response.json();
-  localStorage.setItem('jwt', data);
-  router.replace('/dashboard');
+  try {
+    const response = await fetch('http://localhost:3000/users/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.value, password: password.value })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      error.value = data.message || date.error || 'Login failed';
+      return;
+    }
+
+    if (!data.token) {
+      error.value = 'No token received from server';
+      return;
+    }
+
+    localStorage.setItem('jwt', data.token);
+    router.replace('/dashboard');
+  } catch (err) {
+    error.value = 'An unexpected error ocurred';
+    console.error('Fetch error: ', err);
+  }
 };
 </script>

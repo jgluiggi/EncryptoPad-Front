@@ -1,27 +1,34 @@
 <template>
-  <div class="w-96 p-4 mx-auto mt-20 border rounded-lg shadow">
-    <h2 class="text-xl font-bold mb-4">Dashboard</h2>
-    <div>
-      <h3 class="text-lg font-semibold">Folders</h3>
-      <ul>
-        <li v-for="folder in folders" :key="folder.id" @click="showFolder(folder)">{{ folder.name }}</li>
-      </ul>
-    </div>
-    <div class="mt-4">
-      <h3 class="text-lg font-semibold">Notes</h3>
-      <ul>
-        <li v-for="note in notes" :key="note.id" @click="showNote(note)">
-          {{ note.title }}
-        </li>
-      </ul>
-    </div>
+  <section class="section">
+    <div class="columns">
+      <div class="column is-one-third">
+        <aside class="menu">
+          <p class="menu-label">Folders</p>
+          <ul class="menu-list">
+            <li v-for="folder in folders" :key="folder.id" @click="showFolder(folder)"><a>{{
+              folder.name }}</a></li>
+          </ul>
+        <div class="mt-4">
+          <p class="menu-label">Notes</p>
+          <ul>
+            <li v-for="note in notes" :key="note.id" @click="showNote(note)">
+              {{ note.title }}
+            </li>
+          </ul>
+        </div>
+        </aside>
+      </div>
+      <div class="column">
+          <label class="label">Dashboard</label>
 
-    <!-- Note Content -->
-    <div v-if="selectedNote" class="mt-4 p-4 border rounded">
-      <h4 class="font-semibold">Note Content</h4>
-      <p>{{ selectedNote.content }}</p>
+          <!-- Note Content -->
+          <div v-if="selectedNote" class="mt-4 p-4 border rounded">
+            <h4 class="font-semibold">Note Content</h4>
+            <p>{{ selectedNote.content }}</p>
+          </div>
+      </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup>
