@@ -76,21 +76,21 @@ const fetchFolders = async () => {
   if (!user_id.value) {
     console.error('User not authenticated or token is invalid');
   }
-  const response = await fetch(`http://localhost:3000/folders/getByUserId/${user_id.value}`, {
+  const response = await fetch(`/api/folders/getByUserId/${user_id.value}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   folders.value = await response.json();
 };
 
 const fetchNotes = async () => {
-  const response = await fetch('http://localhost:3000/notes/getAll', {
+  const response = await fetch('/api/notes/getAll', {
     headers: { Authorization: `Bearer ${token}` },
   });
   notes.value = await response.json();
 };
 
 const createNote = async () => {
-  const response = await fetch('http://localhost:3000/notes/create', {
+  const response = await fetch('/api/notes/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ title: title.value, content: content.value, folder_id: folder_id.value })
@@ -103,7 +103,7 @@ const createFolder = async () => {
   if (!user_id.value) {
     console.error('User not authenticated or token is invalid');
   }
-  const response = await fetch('http://localhost:3000/folders/create', {
+  const response = await fetch('/api/folders/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ name: folderName.value, user_id: user_id.value })

@@ -93,12 +93,13 @@ const register = async () => {
   errorPassword.value = '';
   errorEmail.value = '';
   valid.value = true;
-  const response = await fetch('http://localhost:3000/users/register', {
+  const response = await fetch('/api/users/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: username.value, email: email.value, password: password.value })
   });
   const data = await response.json();
+  console.log(data);
   router.replace('/login');
 };
 </script>
