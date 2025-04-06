@@ -1,14 +1,23 @@
 <template>
   <section class="section">
     <div class="columns">
-      <div class="column is-one-third">
+      <div class="column is-one-fifth">
         <aside class="menu">
-          <p class="menu-label">Folders</p>
+          <p class="menu-label has-text-weight-bold">Folders</p>
           <ul class="menu-list">
             <li v-for="folder in folders" :key="folder.id" @click="showFolder(folder)"><a>{{
-              folder.name }}</a></li>
+              folder.id }} : {{ folder.name }}</a>
+              <ul class="menu-list">
+                  <li v-for="note in notes" @click="showNote(note)"><a v-if="note.folder_id == folder.id">
+                    {{ note.title }}</a>
+                </li>
+              </ul>
+            </li>
           </ul>
-          <button @click="open = true" class="button is-small">+</button>
+          <div class="buttons">
+            <button @click="open = true" class="button is-small is-success has-text-weight-bold">+</button>
+            <button @click="openDelete = true" class="button is-small is-danger has-text-weight-bold">-</button>
+          </div>
           <div class="modal" :class="{'is-active': open, '': !open}">
             <div class="modal-background"></div>
             <div class="modal-content notification is-primary">
@@ -25,33 +34,51 @@
             </div>
             <button @click="open = false" class="modal-close is-large" aria-label="close"></button>
           </div>
-        <div class="mt-4">
-          <p class="menu-label">Notes</p>
-          <ul>
-            <li v-for="note in notes" :key="note.id" @click="showNote(note)">
-              {{ note.title }}
-            </li>
-          </ul>
-        </div>
+          <div class="modal" :class="{'is-active': openDelete, '': !openDelete}">
+            <div class="modal-background"></div>
+            <div class="modal-content notification ">
+              <div class="field">
+                <div class="control">
+                  <input v-model="folderDeletionId" type="text" placeholder="Folder id to delete" class="input"/>
+                </div>
+              </div>
+              <div class="field">
+                <div class="control">
+                  <button @click="deleteFolder()" class="button is-small is-danger">Delete folder.</button>
+                </div>
+              </div>
+            </div>
+            <button @click="openDelete = false" class="modal-close is-large" aria-label="close"></button>
+          </div>
         </aside>
       </div>
+
       <div class="column">
         <label class="label">Dashboard</label>
-        <div class="column is-one-third">
           <div class="field">
             <div class="control">
               <input v-model="noteTitle" type="text" placeholder="Note title" class="input"/>
             </div>
           </div>
-        </div>
-        <textarea v-model="content" class="textarea" placeholder="Write here!" rows="20"></textarea>
 
-          <!-- Note Content -->
-          <div v-if="selectedNote" class="mt-4 p-4 border rounded">
-            <h4 class="font-semibold">Note Content</h4>
-            <p>{{ selectedNote.content }}</p>
+          <div class="field">
+            <div class="control">
+              <textarea v-model="noteContent" class="textarea" placeholder="Write here!" rows="20"></textarea>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="control">
+              <input v-model="folder_id" type="text" placeholder="1, 2 or any number" class="input"/>
+            </div>
+          </div>
+
+          <div class="buttons">
+              <button @click="createNote()" class="button is-small">Create note!</button>
+              <button @click="deleteNote()" class="button is-small is-danger">Delete note.</button>
           </div>
       </div>
+
     </div>
   </section>
 </template>
@@ -65,11 +92,16 @@ const notes = ref([]);
 const content = ref('');
 const folderName = ref('');
 const noteTitle = ref('');
+const noteContent = ref('');
 const user_id = ref(null);
+const note_id = ref(null);
+const folder_id = ref(null);
+const folderDeletionId = ref(null);
 const selectedFolder = ref(null);
 const selectedNote = ref(null);
 const token = localStorage.getItem('jwt');
 const open = ref(false);
+const openDelete = ref(false);
 
 const fetchFolders = async () => {
   user_id.value = getUserIdFromToken();
@@ -90,12 +122,20 @@ const fetchNotes = async () => {
 };
 
 const createNote = async () => {
+  if (!noteTitle.value || !noteContent.value || !folder_id.value) {
+    console.error('Fill everything before creating a note.');
+    return;
+  }
+  user_id.value = getUserIdFromToken();
+  if (!user_id.value) {
+    console.error('User not authenticated or token is invalid');
+  }
   const response = await fetch('/api/notes/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ title: title.value, content: content.value, folder_id: folder_id.value })
+    body: JSON.stringify({ title: noteTitle.value, content: noteContent.value, folder_id: folder_id.value })
   });
-  notes.value = await response.json();
+  fetchNotes();
 };
 
 const createFolder = async () => {
@@ -108,8 +148,39 @@ const createFolder = async () => {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ name: folderName.value, user_id: user_id.value })
   });
-  notes.value = await response.json();
   fetchFolders();
+};
+
+const deleteFolder = async () => {
+  user_id.value = getUserIdFromToken();
+  if (!user_id.value) {
+    console.error('User not authenticated or token is invalid');
+  }
+  if (!folderDeletionId.value) {
+    console.error('Provide the folder id for deletion');
+    return;
+  }
+  const response = await fetch(`/api/folders/delete/${folderDeletionId.value}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+  });
+  fetchFolders();
+};
+
+const deleteNote = async () => {
+  user_id.value = getUserIdFromToken();
+  if (!user_id.value) {
+    console.error('User not authenticated or token is invalid');
+  }
+  if (!note_id.value) {
+    console.error('Provide the note id for deletion');
+    return;
+  }
+  const response = await fetch(`/api/notes/delete/${note_id.value}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+  });
+  fetchNotes();
 };
 
 const showFolder = (folder) => {
@@ -118,6 +189,10 @@ const showFolder = (folder) => {
 
 const showNote = (note) => {
   selectedNote.value = note;
+  noteTitle.value = note.title;
+  noteContent.value = note.content;
+  folder_id.value = note.folder_id;
+  note_id.value = note.id;
 };
 
 onMounted(() => {
