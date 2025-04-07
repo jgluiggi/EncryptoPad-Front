@@ -100,6 +100,7 @@ const folderDeletionId = ref(null);
 const selectedFolder = ref(null);
 const selectedNote = ref(null);
 const token = localStorage.getItem('jwt');
+const key = localStorage.getItem('key');
 const open = ref(false);
 const openDelete = ref(false);
 
