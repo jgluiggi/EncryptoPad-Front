@@ -17,6 +17,14 @@
         </div>
       </div>
       <div class="field">
+        <label class="label">Key</label>
+        <div class="control">
+          <input v-model="key" type="password" placeholder="SC?guZ<75aSZLg?j" class="input"
+            :class="{'is-danger': error != ''}" />
+          <p v-if="error" class="text-red-500">{{ error }}</p>
+        </div>
+      </div>
+      <div class="field">
         <div class="control">
           <button @click="login" class="button is-success">Login</button>
         </div>
@@ -31,11 +39,12 @@ import { useRouter } from 'vue-router';
 
 const email = ref('');
 const password = ref('');
+const key = ref('');
 const error = ref('');
 const router = useRouter();
 
 const login = async () => {
-  if (!email.value || !password.value) {
+  if (!email.value || !password.value || !key.value) {
     error.value = "All fields are required";
     return;
   }
@@ -58,6 +67,7 @@ const login = async () => {
     }
 
     localStorage.setItem('jwt', data.token);
+    localStorage.setItem('key', key.value);
     router.replace('/dashboard');
   } catch (err) {
     error.value = 'An unexpected error ocurred';
