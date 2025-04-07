@@ -43,6 +43,7 @@
       <div class="field">
         <div class="control">
           <p v-if="errorPassword" class="help is-danger">{{ errorPassword }}</p>
+          <p v-if="err" class="help is-danger">{{ err }}</p>
         </div>
       </div>
 
@@ -66,6 +67,7 @@ const password = ref('');
 const confirmPassword = ref('');
 const errorPassword = ref('');
 const errorEmail = ref('');
+const err = ref('');
 const valid = ref(false);
 const router = useRouter();
 
@@ -93,13 +95,23 @@ const register = async () => {
   errorPassword.value = '';
   errorEmail.value = '';
   valid.value = true;
-  const response = await fetch('/api/users/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: username.value, email: email.value, password: password.value })
-  });
-  const data = await response.json();
-  console.log(data);
-  router.replace('/login');
+  try {
+    const response = await fetch('/api/users/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username.value, email: email.value, password: password.value })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      err.value = data.message || date.error || 'Login failed';
+      valid.value = false;
+      return;
+    }
+
+    router.replace('/login');
+  } catch (err) {
+    err.value = 'An unexpected error ocurred';
+    console.error('Fetch error: ', err);
+  }
 };
 </script>

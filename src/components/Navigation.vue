@@ -8,8 +8,10 @@
             <RouterLink to="/login" class="navbar-item"> Login </RouterLink>
 
             <RouterLink to="/dashboard" class="navbar-item"> Your Dashboard </RouterLink>
+
+            <RouterLink to="/organization" class="navbar-item"> Your Organization </RouterLink>
           </div>
-          
+
           <div class="navbar-end">
             <RouterLink to="/register" class="navbar-item"> Register </RouterLink>
           </div>

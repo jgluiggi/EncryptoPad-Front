@@ -3,13 +3,18 @@
     <div class="columns">
       <div class="column is-one-fifth">
         <aside class="menu">
-          <p class="menu-label has-text-weight-bold">Folders</p>
+          <p class="menu-label has-text-weight-bold">Organizations</p>
           <ul class="menu-list">
-            <li v-for="folder in folders" :key="folder.id" @click="showFolder(folder)"><a>{{
-              folder.id }} : {{ folder.name }}</a>
+            <li v-for="organization in organizations" :key="organization.id"><a>{{
+              organization.id }} : {{ organization.name }}</a>
               <ul class="menu-list">
-                  <li v-for="note in notes" @click="showNote(note)"><a v-if="note.folder_id == folder.id">
-                    {{ note.title }}</a>
+                <li v-for="folder in folders" :key="folder.id"><a>{{
+                  folder.id }} : {{ folder.name }}</a>
+                  <ul class="menu-list">
+                      <li v-for="note in notes" @click="showNote(note)"><a v-if="note.folder_id == folder.id">
+                        {{ note.title }}</a>
+                    </li>
+                  </ul>
                 </li>
               </ul>
             </li>
@@ -55,27 +60,48 @@
 
       <div class="column">
         <label class="label">Dashboard</label>
-          <div class="field">
+          <div class="field has-addons">
             <div class="control">
-              <input v-model="noteTitle" type="text" placeholder="Note title" class="input"/>
+              <input v-model="organizationName" type="text" placeholder="Organization name" class="input"/>
+            </div>
+            <div class="control">
+              <button @click="createOrganization()" class="button is-success">Create
+            organization!</button>
             </div>
           </div>
 
-          <div class="field">
+          <div class="field has-addons">
             <div class="control">
-              <textarea v-model="noteContent" class="textarea" placeholder="Write here!" rows="20"></textarea>
+              <input v-model="userAdd_id" type="text" placeholder="1, 2 or any number" class="input"/>
+            </div>
+            <div class="control">
+              <button @click="addUser()" class="button is-warning">Add user to organization!</button>
             </div>
           </div>
-
-          <div class="field">
+          <div class="field has-addons">
             <div class="control">
               <input v-model="folder_id" type="text" placeholder="1, 2 or any number" class="input"/>
             </div>
+            <div class="control">
+              <button @click="addFolder()" class="button is-warning">Add folder to organization!</button>
+            </div>
           </div>
 
-          <div class="buttons">
-              <button @click="createNote()" class="button is-small is-success">Create note!</button>
-              <button @click="deleteNote()" class="button is-small is-danger">Delete note.</button>
+          <div class="field has-addons">
+            <div class="control">
+              <input v-model="userAdd_id" type="text" placeholder="1, 2 or any number" class="input"/>
+            </div>
+            <div class="control">
+              <button @click="deleteUser()" class="button is-danger">Remove user from organization.</button>
+            </div>
+          </div>
+          <div class="field has-addons">
+            <div class="control">
+              <input v-model="folder_id" type="text" placeholder="1, 2 or any number" class="input"/>
+            </div>
+            <div class="control">
+              <button @click="deleteFolder()" class="button is-danger">Remove folder from organization.</button>
+            </div>
           </div>
       </div>
 
@@ -87,12 +113,14 @@
 import { ref, onMounted } from 'vue';
 import { getUserIdFromToken } from '@/utils/auth';
 
+const organizations = ref([]);
 const folders = ref([]);
 const notes = ref([]);
 const content = ref('');
 const folderName = ref('');
-const noteTitle = ref('');
+const organizationName = ref('');
 const noteContent = ref('');
+const userAdd_id = ref(null);
 const user_id = ref(null);
 const note_id = ref(null);
 const folder_id = ref(null);
@@ -103,39 +131,49 @@ const token = localStorage.getItem('jwt');
 const open = ref(false);
 const openDelete = ref(false);
 
+const fetchOrganizations = async () => {
+  user_id.value = getUserIdFromToken();
+  if (!user_id.value) {
+    console.error('User not authenticated or token is invalid');
+  }
+  const response = await fetch('/api/organizations/getAll/', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  organizations.value = await response.json();
+};
+
 const fetchFolders = async () => {
   user_id.value = getUserIdFromToken();
   if (!user_id.value) {
     console.error('User not authenticated or token is invalid');
   }
-  const response = await fetch(`/api/folders/getByUserId/${user_id.value}`, {
+  const response = await fetch(`/api/organizations/${user_id.value}/folders`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   folders.value = await response.json();
 };
 
 const fetchNotes = async () => {
-  const response = await fetch('/api/notes/getAll', {
+  const response = await fetch(`/api/organizations/${user_id.value}/notes`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   notes.value = await response.json();
 };
 
-const createNote = async () => {
-  if (!noteTitle.value || !noteContent.value || !folder_id.value) {
-    console.error('Fill everything before creating a note.');
+const createOrganization = async () => {
+  if (!organizationName.value) {
+    console.error('Name your organization');
     return;
   }
   user_id.value = getUserIdFromToken();
   if (!user_id.value) {
     console.error('User not authenticated or token is invalid');
   }
-  const response = await fetch('/api/notes/create', {
+  const response = await fetch('/api/organizations/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ title: noteTitle.value, content: noteContent.value, folder_id: folder_id.value })
+    body: JSON.stringify({ name: organizationName.value })
   });
-  fetchNotes();
 };
 
 const createFolder = async () => {
@@ -167,7 +205,7 @@ const deleteFolder = async () => {
   fetchFolders();
 };
 
-const deleteNote = async () => {
+const deleteOrganization = async () => {
   user_id.value = getUserIdFromToken();
   if (!user_id.value) {
     console.error('User not authenticated or token is invalid');
@@ -176,7 +214,7 @@ const deleteNote = async () => {
     console.error('Provide the note id for deletion');
     return;
   }
-  const response = await fetch(`/api/notes/delete/${note_id.value}`, {
+  const response = await fetch(`/api/organizations/delete/${note_id.value}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
   });
@@ -196,6 +234,7 @@ const showNote = (note) => {
 };
 
 onMounted(() => {
+  fetchOrganizations();
   fetchFolders();
   fetchNotes();
 });
