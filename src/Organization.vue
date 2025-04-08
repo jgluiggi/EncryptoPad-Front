@@ -5,24 +5,10 @@
         <aside class="menu">
           <p class="menu-label has-text-weight-bold">Organizations</p>
           <ul class="menu-list">
-            <li v-for="organization in organizations" :key="organization.id"><a>{{
+            <li v-for="organization in organizations" :key="organization.id"><a @click="onOrganizationClick(organization)">{{
               organization.id }} : {{ organization.name }}</a>
-              <ul class="menu-list">
-                <li v-for="folder in folders" :key="folder.id"><a>{{
-                  folder.id }} : {{ folder.name }}</a>
-                  <ul class="menu-list">
-                      <li v-for="note in notes" @click="showNote(note)"><a v-if="note.folder_id == folder.id">
-                        {{ note.title }}</a>
-                    </li>
-                  </ul>
-                </li>
-              </ul>
             </li>
           </ul>
-          <div class="buttons">
-            <button @click="open = true" class="button is-small is-success has-text-weight-bold">+</button>
-            <button @click="openDelete = true" class="button is-small is-danger has-text-weight-bold">-</button>
-          </div>
           <div class="modal" :class="{'is-active': open, '': !open}">
             <div class="modal-background"></div>
             <div class="modal-content notification is-primary">
@@ -69,40 +55,6 @@
             organization!</button>
             </div>
           </div>
-
-          <div class="field has-addons">
-            <div class="control">
-              <input v-model="userAdd_id" type="text" placeholder="1, 2 or any number" class="input"/>
-            </div>
-            <div class="control">
-              <button @click="addUser()" class="button is-warning">Add user to organization!</button>
-            </div>
-          </div>
-          <div class="field has-addons">
-            <div class="control">
-              <input v-model="folder_id" type="text" placeholder="1, 2 or any number" class="input"/>
-            </div>
-            <div class="control">
-              <button @click="addFolder()" class="button is-warning">Add folder to organization!</button>
-            </div>
-          </div>
-
-          <div class="field has-addons">
-            <div class="control">
-              <input v-model="userAdd_id" type="text" placeholder="1, 2 or any number" class="input"/>
-            </div>
-            <div class="control">
-              <button @click="deleteUser()" class="button is-danger">Remove user from organization.</button>
-            </div>
-          </div>
-          <div class="field has-addons">
-            <div class="control">
-              <input v-model="folder_id" type="text" placeholder="1, 2 or any number" class="input"/>
-            </div>
-            <div class="control">
-              <button @click="deleteFolder()" class="button is-danger">Remove folder from organization.</button>
-            </div>
-          </div>
       </div>
 
     </div>
@@ -112,8 +64,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { getUserIdFromToken } from '@/utils/auth';
+import { useRouter } from 'vue-router';
 
 const organizations = ref([]);
+const organizationsTemp = ref([]);
 const folders = ref([]);
 const notes = ref([]);
 const content = ref('');
@@ -130,16 +84,34 @@ const selectedNote = ref(null);
 const token = localStorage.getItem('jwt');
 const open = ref(false);
 const openDelete = ref(false);
+const router = useRouter();
 
 const fetchOrganizations = async () => {
   user_id.value = getUserIdFromToken();
   if (!user_id.value) {
     console.error('User not authenticated or token is invalid');
   }
-  const response = await fetch('/api/organizations/getAll/', {
+  // Resgata todas as orgs
+  const response = await fetch('/api/organizations/getAll', {
     headers: { Authorization: `Bearer ${token}` },
   });
-  organizations.value = await response.json();
+
+  // Obtem o json de todas as orgs
+  organizationsTemp.value = await response.json();
+
+  // Verifica se o usuário atual pertence a alguma organização
+  for (const organization of organizationsTemp.value) {
+    const res = await fetch(`/api/organizations/${organization.id}/users`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const users = await res.json();
+    for (const user of users) {
+      if (user.id === user_id.value) {
+        organizations.value.push(organization);
+        break;
+      }
+    }
+  }
 };
 
 const fetchFolders = async () => {
@@ -174,6 +146,32 @@ const createOrganization = async () => {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ name: organizationName.value })
   });
+
+  if (!response.ok) {
+    const error = await response.json();
+    console.error('Erro ao criar organização:', error);
+  }
+
+  const data = await response.json();
+  console.log('Organização criada com sucesso');
+  const organizationId = data.id;
+
+  const res2 = await fetch('/api/organizations/add-user/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ organizationId: organizationId, userId: user_id.value })
+  });
+  if (!res2.ok) {
+    const error = await res2.json();
+    console.error('Error adding user to organization:', error);
+  }
+  console.log('User added to organization successfully');
+  organizations.value.push({ id: organizationId, name: organizationName.value });
+};
+
+const onOrganizationClick = (organization) => {
+  console.log('Organização clicada:', organization);
+  router.push(`/organizations/${organization.id}`);
 };
 
 const createFolder = async () => {
