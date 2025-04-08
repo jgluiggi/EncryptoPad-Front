@@ -8,9 +8,6 @@ import { RouterView } from 'vue-router';
 import Navigation from "./components/Navigation.vue";
 import { onMounted } from 'vue';
 
-onMounted(() => {
-  document.documentElement.classList.add('has-navbar-fixed-top')
-})
 
 function clearStorage() {
 
@@ -26,4 +23,8 @@ function clearStorage() {
 }
 
 window.addEventListener('load', clearStorage);
+
+onMounted(() => {
+  document.documentElement.classList.add('has-navbar-fixed-top')
+})
 </script>

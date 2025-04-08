@@ -86,6 +86,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { getUserIdFromToken } from '@/utils/auth';
+import { encrypt, decrypt, getKeyFromPassword, getSalt, importKey, exportKey } from '@/utils/encryption';
 
 const folders = ref([]);
 const notes = ref([]);
@@ -104,23 +105,31 @@ const key = localStorage.getItem('key');
 const open = ref(false);
 const openDelete = ref(false);
 
-const fetchFolders = async () => {
-  user_id.value = getUserIdFromToken();
-  if (!user_id.value) {
-    console.error('User not authenticated or token is invalid');
+const keyJwk = ref(null);
+
+const loadKey = async () => {
+  const stored = localStorage.getItem('keyStored');
+  if (stored) {
+    keyJwk.value = JSON.parse(stored);
+  } else {
+    await generateKey();
   }
-  const response = await fetch(`/api/folders/getByUserId/${user_id.value}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  folders.value = await response.json();
 };
 
-const fetchNotes = async () => {
-  const response = await fetch('/api/notes/getAll', {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  notes.value = await response.json();
-};
+const generateKey = async () => {
+  const generatedKey = await getKeyFromPassword(key, getSalt());
+  if (!localStorage.getItem('keyStored')) {
+    keyJwk.value = await exportKey(generatedKey);
+    localStorage.setItem('keyStored', JSON.stringify(keyJwk.value));
+    console.log(JSON.stringify(keyJwk.value))
+  }
+}
+
+const giveKeyToUser = async () => {
+  if (keyJwk.value) {
+    return JSON.stringify(keyJwk.value);
+  }
+}
 
 const createNote = async () => {
   if (!noteTitle.value || !noteContent.value || !folder_id.value) {
@@ -131,6 +140,14 @@ const createNote = async () => {
   if (!user_id.value) {
     console.error('User not authenticated or token is invalid');
   }
+
+  if (!keyJwk.value) {
+    await generateKey();
+  }
+  var keyInUse = await importKey(keyJwk.value);
+  const ciphertext = await encrypt(noteContent.value, keyInUse);
+  noteContent.value = ciphertext;
+
   const response = await fetch('/api/notes/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -188,16 +205,43 @@ const showFolder = (folder) => {
   selectedFolder.value = folder;
 };
 
-const showNote = (note) => {
+const showNote = async (note) => {
+  var text = note.content;
+  var keyInUse = await importKey(JSON.parse(localStorage.getItem('keyStored')));
+  try {
+    text = await decrypt(note.content, keyInUse);
+  } catch (err) {
+    console.error('Your key is not the one used to encrypt, please try with the real one.');
+  }
+  keyInUse = null;
   selectedNote.value = note;
   noteTitle.value = note.title;
-  noteContent.value = note.content;
+  noteContent.value = text;
   folder_id.value = note.folder_id;
   note_id.value = note.id;
+};
+
+const fetchFolders = async () => {
+  user_id.value = getUserIdFromToken();
+  if (!user_id.value) {
+    console.error('User not authenticated or token is invalid');
+  }
+  const response = await fetch(`/api/folders/getByUserId/${user_id.value}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  folders.value = await response.json();
+};
+
+const fetchNotes = async () => {
+  const response = await fetch('/api/notes/getAll', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  notes.value = await response.json();
 };
 
 onMounted(() => {
   fetchFolders();
   fetchNotes();
+  loadKey();
 });
 </script>
