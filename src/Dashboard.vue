@@ -125,7 +125,7 @@ const generateKey = async () => {
   }
 }
 
-const giveKeyToUser = async () => {
+const giveKeyToUser = () => {
   if (keyJwk.value) {
     return JSON.stringify(keyJwk.value);
   }
